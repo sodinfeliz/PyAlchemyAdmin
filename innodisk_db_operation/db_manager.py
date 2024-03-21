@@ -109,7 +109,7 @@ class DBManager(ABC):
             query_string (str): The SQL command to execute.
             params (Dict, optional): The parameters to pass to the SQL command. Defaults to None.
         """
-        with cls._session_scope() as session:
+        with cls.SESSION() as session:
             result = session.execute(
                 statement=text(query_string), 
                 params=params
