@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from typing import Optional, List, Dict
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -22,7 +21,7 @@ AVAILABLE_ENGINES = {
 
 
 
-class DBManager(ABC):
+class DBManager:
 
     DATABASE_URL: str = ""
     ENGINE = None
@@ -42,7 +41,6 @@ class DBManager(ABC):
             raise ValueError(f"Engine '{engine}' is not supported for dialect '{dialect}'.")
 
     @classmethod
-    @abstractmethod
     def create_database_session(cls, *, database: str, user: str, password: str, 
                                 host: str, port: int, dialect: str, engine: str = "", echo: bool=False):
         """Initializes the database engine and session.
@@ -61,7 +59,19 @@ class DBManager(ABC):
         cls.__check_engine(dialect, engine)
 
         engine_spec = dialect if engine == "" else f"{dialect}+{engine}"
-        cls.DATABASE_URL = f"{engine_spec}://{user}:{password}@{host}:{port}/{database}"
+
+        # SQLite does not require a username, password, host, and port
+        if dialect == "sqlite":
+            if database == ":memory:":
+                cls.DATABASE_URL = "sqlite://"
+            else:
+                # Handling both relative (three slashes) and absolute (four slashes) paths
+                # An absolute path in SQLite starts with a slash, which leads to four slashes in total
+                prefix = "sqlite:///"
+                cls.DATABASE_URL = f"{prefix}{database}"
+        else:
+            cls.DATABASE_URL = f"{engine_spec}://{user}:{password}@{host}:{port}/{database}"
+        
         cls.ENGINE = create_engine(cls.DATABASE_URL, echo=echo)
         cls.SESSION = sessionmaker(bind=cls.ENGINE, autocommit=False, autoflush=False)
 
