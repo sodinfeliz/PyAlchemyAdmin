@@ -1,6 +1,7 @@
 from typing import Optional, List, Dict
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 
 AVAILABLE_DIALECTS = [
@@ -61,7 +62,7 @@ class DBManager:
         engine_spec = dialect if engine == "" else f"{dialect}+{engine}"
 
         # SQLite does not require a username, password, host, and port
-        if dialect == "sqlite":
+        if dialect == "sqlite":  # TODO: Test this
             if database == ":memory:":
                 cls.DATABASE_URL = "sqlite://"
             else:
@@ -72,8 +73,11 @@ class DBManager:
         else:
             cls.DATABASE_URL = f"{engine_spec}://{user}:{password}@{host}:{port}/{database}"
         
-        cls.ENGINE = create_engine(cls.DATABASE_URL, echo=echo)
-        cls.SESSION = sessionmaker(bind=cls.ENGINE, autocommit=False, autoflush=False)
+        try:
+            cls.ENGINE = create_engine(cls.DATABASE_URL, echo=echo)
+            cls.SESSION = sessionmaker(bind=cls.ENGINE, autocommit=False, autoflush=False)
+        except SQLAlchemyError as e:
+            raise ValueError(f"An error occurred while creating the database session: {e}")
 
     @classmethod
     def create_all(cls):
