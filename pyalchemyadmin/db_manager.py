@@ -4,25 +4,18 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 
-AVAILABLE_DIALECTS = [
-    "postgresql", 
-    "mysql", 
-    "oracle", 
-    "mssql", 
-    "sqlite"
-]
-
-AVAILABLE_ENGINES = {
-    "postgresql": ["psycopg2", "pg8000", "asyncpg"],
-    "mysql": ["mysqldb", "pymysql"],
-    "oracle": ["cx_oracle"],
-    "mssql": ["pyodbc", "pymssql"],
-    "sqlite": [""]
-}
-
-
 
 class DBManager:
+
+    # Supported dialects and engines
+    AVAILABLE_DIALECTS = ["postgresql", "mysql", "oracle", "mssql", "sqlite"]
+    AVAILABLE_ENGINES = {
+        "postgresql": ["psycopg2", "pg8000", "asyncpg"],
+        "mysql": ["mysqldb", "pymysql"],
+        "oracle": ["cx_oracle"],
+        "mssql": ["pyodbc", "pymssql"],
+        "sqlite": [""]
+    }
 
     def __init__(self, *, database: str, user: str, password: str, 
                  host: str, port: int, dialect: str, engine: str = "", echo: bool=False):
@@ -38,28 +31,30 @@ class DBManager:
             engine (str, optional): The engine of the database. Defaults to "".
             echo (bool, optional): If True, the engine will log all the SQL it executes. Defaults to False.
         """
-        DBManager.__check_dialect(dialect)
-        DBManager.__check_engine(dialect, engine)
-        
-        # SQLite does not require a username, password, host, and port
-        if dialect == "sqlite":  # TODO: Test this
-            if database == ":memory:":
-                self._database_url = "sqlite://"
-            else:
-                # Handling both relative (three slashes) and absolute (four slashes) paths
-                # An absolute path in SQLite starts with a slash, which leads to four slashes in total
-                prefix = "sqlite:///"
-                self._database_url = f"{prefix}{database}"
-        else:
-            engine_spec = dialect if engine == "" else f"{dialect}+{engine}"
-            self._database_url = f"{engine_spec}://{user}:{password}@{host}:{port}/{database}"
-        
+        if dialect not in self.AVAILABLE_DIALECTS:
+            raise ValueError(f"Dialect '{dialect}' is not supported.")
+        if engine and engine not in self.AVAILABLE_ENGINES.get(dialect, []):
+            raise ValueError(f"Engine '{engine}' is not supported for dialect '{dialect}'.")
+
         try:
+            self._database_url = self._construct_database_url(
+                dialect=dialect, database=database, user=user,
+                password=password, host=host, port=port, engine=engine
+            )
             self._engine = create_engine(self._database_url, echo=echo)
             self._session = sessionmaker(bind=self._engine, autocommit=False, autoflush=False)
             self._base = declarative_base()
         except SQLAlchemyError as e:
             raise ValueError(f"An error occurred while creating the database session: {e}")
+        
+    @staticmethod
+    def _construct_database_url(dialect, database, user, password, host, port, engine):
+        """ Constructs the database URL based on the given parameters."""
+        if dialect == "sqlite":
+            return f"sqlite:///{database}" if database != ":memory:" else "sqlite://"
+        else:
+            engine_spec = f"{dialect}+{engine}" if engine else dialect
+            return f"{engine_spec}://{user}:{password}@{host}:{port}/{database}"
         
     @property
     def base(self):
@@ -68,18 +63,6 @@ class DBManager:
     @property
     def session(self):
         return self._session
-
-    @staticmethod
-    def __check_dialect(dialect: str) -> None:
-        """Checks if the dialect is supported."""
-        if dialect not in AVAILABLE_DIALECTS:
-            raise ValueError(f"Dialect '{dialect}' is not supported.")
-        
-    @staticmethod
-    def __check_engine(dialect: str, engine: str) -> None:
-        """Checks if the engine is supported."""
-        if engine and engine not in AVAILABLE_ENGINES[dialect]:
-            raise ValueError(f"Engine '{engine}' is not supported for dialect '{dialect}'.")
 
     def create_all(self) -> None:
         """Create all tables in the database using the engine."""
