@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy import Column, Text
 from sqlalchemy.dialects.postgresql import UUID, JSON, BIGINT
-from pyalchemyadmin import PostgreDBManager
+from pyalchemyadmin import PostgreDBManager, DBManager, SQLiteDBManager
 
 DATABASE = 'postgres'
 USER = 'admin'
@@ -10,7 +10,7 @@ HOST = '127.0.0.1'
 PORT = 7776
 
 
-PostgreDBManager.create_database_session(
+db = PostgreDBManager(
     database=DATABASE,
     user=USER,
     password=PASSWORD,
@@ -20,7 +20,7 @@ PostgreDBManager.create_database_session(
 )
 
 
-class Project(PostgreDBManager.BASE):
+class Project(db.base):
     __tablename__ = 'project'
     
     project_uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -33,5 +33,4 @@ class Project(PostgreDBManager.BASE):
     create_time = Column(BIGINT)
 
 
-PostgreDBManager.create_all()
-
+db.create_all()

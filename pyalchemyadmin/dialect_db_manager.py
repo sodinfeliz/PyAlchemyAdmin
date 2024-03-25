@@ -5,15 +5,31 @@ class _DialectDBManager(DBManager):
     dialect = ""
     default_port = None
 
-    @classmethod
-    def create_database_session(cls, *, database: str, user: str, password: str, 
-                                host: str, port: int = None, engine: str = "", echo: bool=False):
+    def __init__(self, *, database: str, user: str, password: str, 
+                 host: str, port: int = None, engine: str = "", echo: bool=False):
+        """Initializes the database engine and session.
+        
+        Args:
+            database (str): The name of the database.
+            user (str): The username for the database.
+            password (str): The password for the database.
+            host (str): The host of the database.
+            port (int): The port of the database.
+            engine (str, optional): The engine of the database. Defaults to "".
+            echo (bool, optional): If True, the engine will log all the SQL it executes. Defaults to False.
+        """
         if port is None:
-            port = cls.default_port
+            port = self.default_port
 
-        super().create_database_session(
-            database=database, user=user, password=password, host=host, port=port,
-            dialect=cls.dialect, engine=engine, echo=echo
+        super().__init__(
+            database=database, 
+            user=user, 
+            password=password, 
+            host=host, 
+            port=port,
+            dialect=self.dialect, 
+            engine=engine, 
+            echo=echo
         )
 
 
@@ -39,12 +55,17 @@ class MicrosoftSQLServerDBManager(_DialectDBManager):
 
 class SQLiteDBManager(_DialectDBManager):
     dialect = "sqlite"
-    
-    @classmethod
-    def create_database_session(cls, *, database: str, echo: bool=False):
-        super().create_database_session(
+
+    def __init__(self, *, database: str, echo: bool=False):
+        """Initializes the database engine and session.
+        
+        Args:
+            database (str): The name of the database.
+            echo (bool, optional): If True, the engine will log all the SQL it executes. Defaults to False.
+        """
+        super().__init__(
             database=database, user="", password="", host="", port=None,
-            dialect=cls.dialect, engine="", echo=echo
+            dialect=SQLiteDBManager.dialect, engine="", echo=echo
         )
 
 
