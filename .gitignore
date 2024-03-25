@@ -1,1 +1,9 @@
+# Python files #
+################
+dist/
 __pycache__/
+*.egg-info
+
+# Python virtualenvs #
+######################
+venv/
