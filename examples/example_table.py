@@ -1,13 +1,15 @@
 import uuid
+
 from sqlalchemy import Column, Text
-from sqlalchemy.dialects.postgresql import UUID, JSON, BIGINT
-from pyalchemyadmin import PostgreDBManager, DBManager, SQLiteDBManager
+from sqlalchemy.dialects.postgresql import UUID
+
+from pyalchemyadmin import PostgreDBManager
 
 DATABASE = 'postgres'
-USER = 'admin'
-PASSWORD = 'admin'
+USER = 'postgres'
+PASSWORD = 'password'
 HOST = '127.0.0.1'
-PORT = 7776
+PORT = 5432
 
 
 db = PostgreDBManager(
@@ -20,17 +22,12 @@ db = PostgreDBManager(
 )
 
 
-class Project(db.base):
-    __tablename__ = 'project'
+class TestTable(db.base):
+    __tablename__ = 'test_table'
     
     project_uuid = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     project_name = Column(Text, nullable=False)
-    project_status = Column(JSON)
-    project_path = Column(Text)
     annotation = Column(Text)
-    cover_image_name = Column(Text)
-    cover_image_type = Column(Text)
-    create_time = Column(BIGINT)
 
 
-db.create_all()
+db.create_all_tables()
